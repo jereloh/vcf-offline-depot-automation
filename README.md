@@ -43,7 +43,7 @@ The logic in this script is based on the official procedure:
 2.  **Download the Script:**
     Run the following command on the VM to download the script directly:
     ```bash
-    wget [https://raw.githubusercontent.com/jereloh/vcf-offline-depot-automation/main/setup_vcf_depot.sh](https://raw.githubusercontent.com/jereloh/vcf-offline-depot-automation/main/setup_vcf_depot.sh)
+    wget https://raw.githubusercontent.com/jereloh/vcf-offline-depot-automation/main/setup_vcf_depot.sh
     ```
 
 3.  **Make Executable:**
