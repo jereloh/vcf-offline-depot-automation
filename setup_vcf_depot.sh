@@ -362,9 +362,12 @@ EOF
   rm -f /var/www/html/index.html
 
   chmod 755 /var /var/www /var/www/html
-  chown -R apache:apache /var/www/html
-  find /var/www/html -mindepth 1 -type d -exec chmod 0500 {} \;
-  find /var/www/html -mindepth 1 -type f -exec chmod 0400 {} \;
+  # Everything under PROD owned by apache (VCF depot content tree)
+  if [ -d /var/www/html/PROD ]; then
+    chown -R apache:apache /var/www/html/PROD
+    find /var/www/html/PROD -type d -exec chmod 0500 {} \;
+    find /var/www/html/PROD -type f -exec chmod 0400 {} \;
+  fi
 
   SSL_DONE=1
   save_state
