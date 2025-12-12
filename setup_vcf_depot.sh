@@ -276,42 +276,58 @@ EOF
       fi
       ;;
 3)
-      # --- FIX: Ask for email first because Apache needs it later ---
       echo -e "\n${CYAN}--- Configuration ---${NC}"
       read -p "Admin Email [${S_ADMIN:-operations@rainpole.io}]: " TMP
       S_ADMIN=${TMP:-${S_ADMIN:-operations@rainpole.io}}
-
-      # Ensure no spaces in email (simple sanitization)
+      
+      # Sanitize email: Remove spaces to prevent "AH00526: ServerAdmin takes one argument" error
       S_ADMIN=$(echo "$S_ADMIN" | tr -d ' ')
 
-      echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
-      echo "1. Open a terminal on your laptop."
-      # Use printf to handle colors safely
-      printf "2. Upload your files to: ${CYAN}%s/${NC}\n" "$CERT_DIR"
-      echo
-      echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' as you upload them and rename accordingly."
-      echo "Waiting for files..."
-
-      while true; do
-        # Smart Match: Private Key
-        if [ -f "$CERT_DIR/privkey.pem" ]; then
-           echo "Detected privkey.pem -> Renaming to server.key"
+      # --- LOGIC: Check for existing files before asking to upload ---
+      
+      # 1. Quick rename if raw files are already sitting there
+      if [ -f "$CERT_DIR/privkey.pem" ]; then
+           echo "Found existing 'privkey.pem' -> Renaming to server.key"
            mv "$CERT_DIR/privkey.pem" "$CERT_DIR/server.key"
-        fi
-
-        # Smart Match: Full Chain
-        if [ -f "$CERT_DIR/fullchain.pem" ]; then
-           echo "Detected fullchain.pem -> Renaming to server.crt"
+      fi
+      if [ -f "$CERT_DIR/fullchain.pem" ]; then
+           echo "Found existing 'fullchain.pem' -> Renaming to server.crt"
            mv "$CERT_DIR/fullchain.pem" "$CERT_DIR/server.crt"
-        fi
+      fi
 
-        # Check if final files exist
-        if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
-             echo -e "${GREEN}Valid Certificate and Key found! Proceeding...${NC}"
-             break
-        fi
-        sleep 2
-      done
+      # 2. Check if valid files exist NOW
+      if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
+           echo -e "${GREEN}Valid Certificate and Key found! Skipping upload step.${NC}"
+      else
+           # 3. Only if missing: Show instructions and wait loop
+           echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
+           echo "1. Open a terminal on your laptop."
+           printf "2. Upload your files to: ${CYAN}%s/${NC}\n" "$CERT_DIR"
+           echo
+           echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' and rename them."
+           echo "Waiting for files..."
+
+           while true; do
+             # Smart Match: Private Key
+             if [ -f "$CERT_DIR/privkey.pem" ]; then
+                echo "Detected privkey.pem -> Renaming to server.key"
+                mv "$CERT_DIR/privkey.pem" "$CERT_DIR/server.key"
+             fi
+
+             # Smart Match: Full Chain
+             if [ -f "$CERT_DIR/fullchain.pem" ]; then
+                echo "Detected fullchain.pem -> Renaming to server.crt"
+                mv "$CERT_DIR/fullchain.pem" "$CERT_DIR/server.crt"
+             fi
+
+             # Check if final files exist
+             if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
+                  echo -e "${GREEN}Valid Certificate and Key found! Proceeding...${NC}"
+                  break
+             fi
+             sleep 2
+           done
+      fi
 
       read -p "Apache Auth Username [${AUTH_USER:-admin}]: " TMP; AUTH_USER=${TMP:-${AUTH_USER:-admin}}
       save_state
