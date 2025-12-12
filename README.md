@@ -1,7 +1,6 @@
-### Important Disclaimer
-
-**Use at your own risk. This code was generated with the help of AI.**
-Always review scripts before running them in a production environment. This software is provided "as is", without warranty of any kind.
+> [!IMPORTANT]
+> **Use at your own risk.**
+> This code was generated with the help of AI. Always review scripts before running them in a production environment. This software is provided "as is", without warranty of any kind.
 
 # VCF Offline Depot Automation
 
@@ -40,26 +39,50 @@ The logic in this script is based on the official procedure:
 1.  **Deploy and Power On:**
     Deploy the Photon OS VM with the secondary disk attached and power it on. Log in as `root`.
 
-2.  **Download the Script:**
-    Run the following command on the VM to download the script directly:
-    ```bash
-    wget https://raw.githubusercontent.com/jereloh/vcf-offline-depot-automation/main/setup_vcf_depot.sh
+2.  **Running the Script:**
+-    Run the following command on the VM to download the script directly:
+    ```
+    bash <(curl -fsSL https://raw.githubusercontent.com/jereloh/vcf-offline-depot-automation/main/setup_vcf_depot.sh)
     ```
 
-3.  **Make Executable:**
-    Grant execution permissions to the script:
-    ```bash
-    chmod +x setup_vcf_depot.sh
-    ```
+    **or** 
 
-4.  **Run the Wizard:**
-    Execute the script:
-    ```bash
-    ./setup_vcf_depot.sh
-    ```
+-   **Download the file**
+   ```curl -L -o setup_vcf_depot.sh https://raw.githubusercontent.com/jereloh/vcf-offline-depot-automation/main/setup_vcf_depot.sh```
+-   **Make it executable**
+   ```chmod +x setup_vcf_depot.sh```
+   
+-   **Run it**
+   ```./setup_vcf_depot.sh```
 
-5.  **Follow Prompts:**
+3.  **Follow Prompts:**
     Enter your network details, select the storage device, and choose your SSL method.
 
-6.  **Finalize:**
-    The system will perform a system update and automatically reboot after a 5-second countdown. Once the system comes back up, your Offline Depot is ready for use.
+## Using Self Signed
+Self-signed certs are not automatically accepted by SDDC Manager/VCF installer, you will be required to import these certs into SDDC Mangaer/VCF Installer following this [KB 403203](https://knowledge.broadcom.com/external/article/403203/set-up-an-offline-depot-from-vcf-90-inst.html)
+
+## Using Let's Encrypt SSL (Docker Method)
+If you require a trusted root certificate (e.g., Let's Encrypt) instead of a self-signed one, you can generate the certificates on a separate machine using Docker.
+
+Requirements:
+
+A separate machine with Docker installed.
+
+Public DNS access to add TXT records for domain verification.
+
+Run the official Certbot container:
+edit -d depot.mycompany.com to -d mydomain.com *.mydomain.com fo root/wildcards if required
+```
+docker run -it --rm --name certbot \
+  -v "$(pwd)/certs:/etc/letsencrypt" \
+  certbot/certbot \
+  certonly --manual --preferred-challenges dns \
+  -d depot.mycompany.com
+```
+Retrieve certs via:
+```ls -R ./certs/live/```
+
+Add the TXT records in public dns
+
+For internal DNS create the same DNS record pointing to the ip address of the appliance
+
