@@ -278,8 +278,7 @@ EOF
     3)
       echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
       echo "1. Open a terminal on your laptop."
-      echo "2. Upload your files to: ${CYAN}$CERT_DIR/${NC}"
-      echo "   Example: scp ./certs/live/pisang.party/* root@$CERT_IP:$CERT_DIR/"
+      echo -e "2. Upload your files to: ${CYAN}$CERT_DIR/${NC}"
       echo
       echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' and rename them."
       echo "Waiting for files..."
