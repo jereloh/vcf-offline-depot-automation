@@ -18,7 +18,7 @@ SSL_CONF="/etc/httpd/conf/extra/httpd-ssl.conf"
 CERT_DIR="/root/http-certificates"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STATE_FILE="$SCRIPT_DIR/vcf_depot.state"
+STATE_FILE="/root/vcf_depot.state"
 
 # ---------------------------------------------------------------------------
 # 0. Load previous state if present
