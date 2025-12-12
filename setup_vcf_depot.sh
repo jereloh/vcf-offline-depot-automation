@@ -304,9 +304,16 @@ EOF
   # ----- Common Apache config -----
   echo -e "${GREEN}Configuring Apache...${NC}"
 
-  # 1. MOVE CERTIFICATES (Force Overwrite)
-  mv -f "$CERT_DIR/server.key" /etc/httpd/conf/
-  mv -f "$CERT_DIR/server.crt" /etc/httpd/conf/
+  # 1. INSTALL CERTIFICATES (Use COPY instead of MOVE for reliability)
+  # We use 'cp -f' to force overwrite and ensure correct SELinux context inheritance
+  if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
+      cp -f "$CERT_DIR/server.key" /etc/httpd/conf/
+      cp -f "$CERT_DIR/server.crt" /etc/httpd/conf/
+      echo "Certificates installed to /etc/httpd/conf/."
+  else
+      echo -e "${RED}ERROR: Certificates not found in $CERT_DIR! Cannot proceed.${NC}"
+      exit 1
+  fi
   
   chmod 0400 /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
   chown root:root /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
