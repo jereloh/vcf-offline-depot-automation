@@ -71,7 +71,7 @@ status_text() {
 
 clear
 echo -e "${GREEN}============================================================${NC}"
-echo -e "${GREEN}   VCF Offline Depot Wizard (Photon OS 5)                   ${NC}"
+echo -e "${GREEN}   VCF Offline Depot Wizard (for Photon OS 5)               ${NC}"
 echo -e "${GREEN}============================================================${NC}"
 
 # ---------------------------------------------------------------------------
@@ -180,6 +180,7 @@ configure_ssl_and_apache() {
   echo -e "\n${CYAN}--- SSL Mode ---${NC}"
   echo "1) Self-Signed (lab/test, generate key+cert here)"
   echo "2) CSR for External CA / VMCA (manual upload of signed CRT)"
+  echo "3) Upload existing Certificate & Key (e.g., Let's Encrypt)"
   read -p "Select [1]: " SSL_OPT; SSL_OPT=${SSL_OPT:-1}
 
   mkdir -p "$CERT_DIR"
@@ -274,7 +275,25 @@ EOF
         done
       fi
       ;;
-
+    3) # <--- NEW LOGIC FOR OPTION 3
+      echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
+      echo "Please upload your existing Certificate and Private Key to the depot."
+      echo "You must rename them to match the expected filenames:"
+      echo
+      echo -e "  1. Private Key   ->  ${CYAN}$CERT_DIR/server.key${NC}"
+      echo -e "  2. Certificate   ->  ${CYAN}$CERT_DIR/server.crt${NC} (Use fullchain.pem!)"
+      echo
+      echo "Waiting for files..."
+      while true; do
+        if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
+             echo -e "${GREEN}Files detected! Proceeding...${NC}"
+             break
+        fi
+        sleep 2
+      done
+      read -p "Apache Auth Username [${AUTH_USER:-admin}]: " TMP; AUTH_USER=${TMP:-${AUTH_USER:-admin}}
+      save_state
+      ;;
     *)
       echo "Invalid SSL option."
       exit 1
