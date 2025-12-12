@@ -397,7 +397,6 @@ EOF
   systemctl enable httpd
   systemctl restart httpd
 
-  rm -rf "$CERT_DIR"
   rm -f /var/www/html/index.html
 
   echo -e "${GREEN}Applying VCF permissions to DocumentRoot...${NC}"
