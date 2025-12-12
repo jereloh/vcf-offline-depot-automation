@@ -237,6 +237,35 @@ EOF
           -in "$CERT_DIR/request.csr" \
           -signkey "$CERT_DIR/server.key" \
           -out "$CERT_DIR/server.crt"
+          
+        echo -e "${YELLOW}NOTE:${NC} This offline depot uses a self-signed TLS certificate."
+        echo -e "${YELLOW}For VCF 9.x, the VCF Installer and SDDC Manager will NOT trust this by default and you may see${NC}"
+        echo "  'Secure protocol communication error' when configuring the offline depot over HTTPS (KB 403203)." [web:352][web:102]
+        echo
+        echo "To trust this cert on SDDC Manager / VCF 9 Installer (based on KB 316056):" [web:318]
+        echo "  1) On the depot VM, display the certificate:"
+        echo "       cat /etc/httpd/conf/server.crt"
+        echo "     Copy the full PEM output (including BEGIN/END CERTIFICATE) to your clipboard."
+        echo "  2) On the SDDC Manager or VCF 9 Installer appliance:"
+        echo "       - SSH as 'vcf' user, then 'su -' to root if needed."
+        echo "       - Create /home/vcf/server.crt and paste the copied certificate contents into it."
+        echo "         (for example with:  vim /home/vcf/server.crt )"
+        echo "  3) Get the commonsvcs keystore password:"
+        echo "       KEY=\$(cat /etc/vmware/vcf/commonsvcs/trusted_certificates.key)"
+        echo "  4) Import the cert into the SDDC/Installer trust store:"
+        echo "       keytool -importcert -alias offline-depot -file /home/vcf/server.crt \\"
+        echo "         -keystore /etc/vmware/vcf/commonsvcs/trusted_certificates.store --storepass \"\$KEY\""
+        echo "  5) Validate the cert is present:"
+        echo "       keytool -list -v -keystore /etc/vmware/vcf/commonsvcs/trusted_certificates.store -storepass \"\$KEY\""
+        echo "  6) Restart services:"
+        echo "       /opt/vmware/vcf/operationsmanager/scripts/cli/sddcmanager_restart_services.sh"
+        echo
+        echo "Refs:"
+        echo "  - KB 403203: Offline depot 'Secure protocol communication error'"
+        echo "    https://knowledge.broadcom.com/external/article/403203/set-up-an-offline-depot-from-vcf-90-inst.html"
+        echo "  - KB 316056: How to add/delete Custom CA Certificates to SDDC Manager"
+        echo "    https://knowledge.broadcom.com/external/article/316056/how-to-adddelete-custom-ca-certificates.html"
+        
       else
         echo -e "${RED}ACTION REQUIRED:${NC}"
         echo "  Sign $CERT_DIR/request.csr with your External CA or VMCA."
