@@ -275,22 +275,36 @@ EOF
         done
       fi
       ;;
-    3) # <--- NEW LOGIC FOR OPTION 3
+    3)
       echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
-      echo "Please upload your existing Certificate and Private Key to the depot."
-      echo "You must rename them to match the expected filenames:"
+      echo "1. Open a terminal on your laptop."
+      echo "2. Upload your files to: ${CYAN}$CERT_DIR/${NC}"
+      echo "   Example: scp ./certs/live/pisang.party/* root@$CERT_IP:$CERT_DIR/"
       echo
-      echo -e "  1. Private Key   ->  ${CYAN}$CERT_DIR/server.key${NC}"
-      echo -e "  2. Certificate   ->  ${CYAN}$CERT_DIR/server.crt${NC} (Use fullchain.pem!)"
-      echo
+      echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' and rename them."
       echo "Waiting for files..."
+
       while true; do
+        # Smart Match: Private Key
+        if [ -f "$CERT_DIR/privkey.pem" ]; then
+           echo "Detected privkey.pem -> Renaming to server.key"
+           mv "$CERT_DIR/privkey.pem" "$CERT_DIR/server.key"
+        fi
+
+        # Smart Match: Full Chain
+        if [ -f "$CERT_DIR/fullchain.pem" ]; then
+           echo "Detected fullchain.pem -> Renaming to server.crt"
+           mv "$CERT_DIR/fullchain.pem" "$CERT_DIR/server.crt"
+        fi
+
+        # Check if final files exist
         if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
-             echo -e "${GREEN}Files detected! Proceeding...${NC}"
+             echo -e "${GREEN}Valid Certificate and Key found! Proceeding...${NC}"
              break
         fi
         sleep 2
       done
+
       read -p "Apache Auth Username [${AUTH_USER:-admin}]: " TMP; AUTH_USER=${TMP:-${AUTH_USER:-admin}}
       save_state
       ;;
