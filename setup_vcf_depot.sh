@@ -189,11 +189,11 @@ configure_ssl_and_apache() {
   case "$SSL_OPT" in
     1|2)
       echo -e "\n${CYAN}--- Certificate Subject ---${NC}"
-      read -p "Country [${C_C:-SE}]: " TMP;      C_C=${TMP:-${C_C:-SE}}
+      read -p "Country [${C_C:-SE}]: " TMP;       C_C=${TMP:-${C_C:-SE}}
       read -p "State [${C_ST:-Stockholm}]: " TMP; C_ST=${TMP:-${C_ST:-Stockholm}}
-      read -p "City [${C_L:-Stockholm}]: " TMP;   C_L=${TMP:-${C_L:-Stockholm}}
-      read -p "Org [${C_O:-Rainpole}]: " TMP;     C_O=${TMP:-${C_O:-Rainpole}}
-      read -p "Unit [${C_OU:-IT}]: " TMP;         C_OU=${TMP:-${C_OU:-IT}}
+      read -p "City [${C_L:-Stockholm}]: " TMP;    C_L=${TMP:-${C_L:-Stockholm}}
+      read -p "Org [${C_O:-Rainpole}]: " TMP;      C_O=${TMP:-${C_O:-Rainpole}}
+      read -p "Unit [${C_OU:-IT}]: " TMP;          C_OU=${TMP:-${C_OU:-IT}}
       read -p "Admin Email [${S_ADMIN:-operations@rainpole.io}]: " TMP; S_ADMIN=${TMP:-${S_ADMIN:-operations@rainpole.io}}
       read -p "Apache Auth Username [${AUTH_USER:-admin}]: " TMP; AUTH_USER=${TMP:-${AUTH_USER:-admin}}
 
@@ -237,34 +237,6 @@ EOF
           -in "$CERT_DIR/request.csr" \
           -signkey "$CERT_DIR/server.key" \
           -out "$CERT_DIR/server.crt"
-
-        echo -e "${YELLOW}NOTE:${NC} This offline depot uses a self-signed TLS certificate."
-        echo -e "${YELLOW}For VCF 9.x, the VCF Installer and SDDC Manager will NOT trust this by default and you may see${NC}"
-        echo "  'Secure protocol communication error' when configuring the offline depot over HTTPS (KB 403203)." [web:352][web:102]
-        echo
-        echo "To trust this cert on SDDC Manager / VCF 9 Installer (based on KB 316056):" [web:318]
-        echo "  1) On the depot VM, display the certificate:"
-        echo "       cat /etc/httpd/conf/server.crt"
-        echo "     Copy the full PEM output (including BEGIN/END CERTIFICATE) to your clipboard."
-        echo "  2) On the SDDC Manager or VCF 9 Installer appliance:"
-        echo "       - SSH as 'vcf' user, then 'su -' to root if needed."
-        echo "       - Create /home/vcf/server.crt and paste the copied certificate contents into it."
-        echo "         (for example with:  vim /home/vcf/server.crt )"
-        echo "  3) Get the commonsvcs keystore password:"
-        echo "       KEY=\$(cat /etc/vmware/vcf/commonsvcs/trusted_certificates.key)"
-        echo "  4) Import the cert into the SDDC/Installer trust store:"
-        echo "       keytool -importcert -alias offline-depot -file /home/vcf/server.crt \\"
-        echo "         -keystore /etc/vmware/vcf/commonsvcs/trusted_certificates.store --storepass \"\$KEY\""
-        echo "  5) Validate the cert is present:"
-        echo "       keytool -list -v -keystore /etc/vmware/vcf/commonsvcs/trusted_certificates.store -storepass \"\$KEY\""
-        echo "  6) Restart services:"
-        echo "       /opt/vmware/vcf/operationsmanager/scripts/cli/sddcmanager_restart_services.sh"
-        echo
-        echo "Refs:"
-        echo "  - KB 403203: Offline depot 'Secure protocol communication error'"
-        echo "    https://knowledge.broadcom.com/external/article/403203/set-up-an-offline-depot-from-vcf-90-inst.html"
-        echo "  - KB 316056: How to add/delete Custom CA Certificates to SDDC Manager"
-        echo "    https://knowledge.broadcom.com/external/article/316056/how-to-adddelete-custom-ca-certificates.html"
       else
         echo -e "${RED}ACTION REQUIRED:${NC}"
         echo "  Sign $CERT_DIR/request.csr with your External CA or VMCA."
@@ -275,59 +247,50 @@ EOF
         done
       fi
       ;;
-3)
+    3)
       echo -e "\n${CYAN}--- Configuration ---${NC}"
       read -p "Admin Email [${S_ADMIN:-operations@rainpole.io}]: " TMP
       S_ADMIN=${TMP:-${S_ADMIN:-operations@rainpole.io}}
       
-      # Sanitize email: Remove spaces to prevent "AH00526: ServerAdmin takes one argument" error
+      # Sanitize email
       S_ADMIN=$(echo "$S_ADMIN" | tr -d ' ')
 
-      # --- LOGIC: Check for existing files before asking to upload ---
-      
-      # 1. Quick rename if raw files are already sitting there
-      if [ -f "$CERT_DIR/privkey.pem" ]; then
-           echo "Found existing 'privkey.pem' -> Renaming to server.key"
-           mv "$CERT_DIR/privkey.pem" "$CERT_DIR/server.key"
-      fi
-      if [ -f "$CERT_DIR/fullchain.pem" ]; then
-           echo "Found existing 'fullchain.pem' -> Renaming to server.crt"
-           mv "$CERT_DIR/fullchain.pem" "$CERT_DIR/server.crt"
-      fi
+      echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
+      echo "1. Open a terminal on your laptop."
+      printf "2. Upload your files to: ${CYAN}%s/${NC}\n" "$CERT_DIR"
+      echo
+      echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' and rename them."
+      echo "Waiting for files..."
 
-      # 2. Check if valid files exist NOW
-      if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
-           echo -e "${GREEN}Valid Certificate and Key found! Skipping upload step.${NC}"
-      else
-           # 3. Only if missing: Show instructions and wait loop
-           echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
-           echo "1. Open a terminal on your laptop."
-           printf "2. Upload your files to: ${CYAN}%s/${NC}\n" "$CERT_DIR"
-           echo
-           echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' and rename them."
-           echo "Waiting for files..."
-
-           while true; do
-             # Smart Match: Private Key
-             if [ -f "$CERT_DIR/privkey.pem" ]; then
-                echo "Detected privkey.pem -> Renaming to server.key"
+      while true; do
+        # Check for Let's Encrypt names OR standard names
+        if [[ -f "$CERT_DIR/privkey.pem" && -f "$CERT_DIR/fullchain.pem" ]] || \
+           [[ -f "$CERT_DIR/server.key" && -f "$CERT_DIR/server.crt" ]]; then
+             
+             echo -e "\n${GREEN}Files detected!${NC}"
+             ls -lh "$CERT_DIR" | grep -E 'pem|key|crt'
+             echo
+             read -p "Press Enter to rename and process these files..." confirm
+             
+             # Now perform the rename
+             if [ -f "$CERT_DIR/privkey.pem" ]; then 
+                echo "Renaming privkey.pem -> server.key"
                 mv "$CERT_DIR/privkey.pem" "$CERT_DIR/server.key"
              fi
-
-             # Smart Match: Full Chain
-             if [ -f "$CERT_DIR/fullchain.pem" ]; then
-                echo "Detected fullchain.pem -> Renaming to server.crt"
+             if [ -f "$CERT_DIR/fullchain.pem" ]; then 
+                echo "Renaming fullchain.pem -> server.crt"
                 mv "$CERT_DIR/fullchain.pem" "$CERT_DIR/server.crt"
              fi
-
-             # Check if final files exist
+             
              if [ -f "$CERT_DIR/server.key" ] && [ -f "$CERT_DIR/server.crt" ]; then
-                  echo -e "${GREEN}Valid Certificate and Key found! Proceeding...${NC}"
+                  echo -e "${GREEN}Files are ready.${NC}"
                   break
+             else
+                  echo -e "${RED}Error: Files missing after rename. Please re-upload.${NC}"
              fi
-             sleep 2
-           done
-      fi
+        fi
+        sleep 2
+      done
 
       read -p "Apache Auth Username [${AUTH_USER:-admin}]: " TMP; AUTH_USER=${TMP:-${AUTH_USER:-admin}}
       save_state
@@ -339,34 +302,34 @@ EOF
   esac
 
   # ----- Common Apache config -----
+  echo -e "${GREEN}Configuring Apache...${NC}"
 
-  mv "$CERT_DIR/server.key" /etc/httpd/conf/
-  mv "$CERT_DIR/server.crt" /etc/httpd/conf/
+  # 1. MOVE CERTIFICATES (Force Overwrite)
+  mv -f "$CERT_DIR/server.key" /etc/httpd/conf/
+  mv -f "$CERT_DIR/server.crt" /etc/httpd/conf/
+  
   chmod 0400 /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
   chown root:root /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
 
-  echo -e "${GREEN}Configuring Apache...${NC}"
-
-  # 1. Sanitize Variables (Prevent spaces from crashing Apache)
+  # 2. Sanitize Variables
   S_ADMIN=$(echo "$S_ADMIN" | tr -d ' ')
   AUTH_USER=$(echo "$AUTH_USER" | tr -d ' ')
 
-  # 2. Enable Modules (Safe to run multiple times)
+  # 3. Enable Modules
   sed -i 's|#LoadModule ssl_module|LoadModule ssl_module|' "$HTTPD_CONF"
   sed -i 's|#LoadModule socache_shmcb_module|LoadModule socache_shmcb_module|' "$HTTPD_CONF"
   sed -i 's|#Include conf/extra/httpd-ssl.conf|Include conf/extra/httpd-ssl.conf|' "$HTTPD_CONF"
 
-  # 3. Configure DocumentRoot
+  # 4. Configure DocumentRoot
   sed -i 's|DocumentRoot "/etc/httpd/html"|DocumentRoot "/var/www/html"|' "$SSL_CONF"
   sed -i 's|DocumentRoot "/etc/httpd/html"|DocumentRoot "/var/www/html"|' "$HTTPD_CONF"
   sed -i 's|<Directory "/etc/httpd/html">|<Directory "/var/www/html">|' "$HTTPD_CONF"
 
-  # 4. FORCE UPDATE ServerAdmin/Name 
-  # Using regex ^... ensures we overwrite the line regardless of its current value
+  # 5. FORCE UPDATE ServerAdmin/Name
   sed -i "s|^ServerAdmin .*|ServerAdmin $S_ADMIN|" "$SSL_CONF"
   sed -i "s|^ServerName .*|ServerName $DEPOT_FQDN:443|" "$SSL_CONF"
 
-  # 5. Fix permissions
+  # 6. Fix permissions
   if ! sed -n '/<Directory "\/var\/www\/html">/,/<\/Directory>/p' "$HTTPD_CONF" | grep -q 'Require all granted'; then
     sed -i '/<Directory "\/var\/www\/html">/,/<\/Directory>/{
 s/Require all denied/Require all granted/;
@@ -376,12 +339,9 @@ s/Require all denied/Require all granted/;
     fi
   fi
 
-  # 6. RESET VCF BLOCKS (Purge & Append)
-  # Deletes any existing VCF config (from the first PROD directory tag down to the end),
-  # but preserves the closing </VirtualHost> tag.
+  # 7. RESET VCF BLOCKS
   sed -i '/<Directory \/var\/www\/html\/PROD\/COMP>/,${/<\/VirtualHost>/!d}' "$SSL_CONF"
 
-  # Append the fresh block
   cat << 'EOF' > /tmp/vcf_blocks.conf
 <Directory /var/www/html/PROD/COMP>
     AuthType Basic
@@ -433,13 +393,10 @@ EOF
   rm -rf "$CERT_DIR"
   rm -f /var/www/html/index.html
 
-  chmod 755 /var /var/www /var/www/html
-  # Everything under PROD owned by apache (VCF depot content tree)
-  if [ -d /var/www/html/PROD ]; then
-    chown -R apache:apache /var/www/html/PROD
-    find /var/www/html/PROD -type d -exec chmod 0500 {} \;
-    find /var/www/html/PROD -type f -exec chmod 0400 {} \;
-  fi
+  echo -e "${GREEN}Applying VCF permissions to DocumentRoot...${NC}"
+  chown -R apache:apache /var/www/html/
+  find /var/www/html -type d -exec chmod 0500 {} \;
+  find /var/www/html -type f -exec chmod 0400 {} \;
 
   SSL_DONE=1
   save_state
