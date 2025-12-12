@@ -275,12 +275,21 @@ EOF
         done
       fi
       ;;
-    3)
+3)
+      # --- FIX: Ask for email first because Apache needs it later ---
+      echo -e "\n${CYAN}--- Configuration ---${NC}"
+      read -p "Admin Email [${S_ADMIN:-operations@rainpole.io}]: " TMP
+      S_ADMIN=${TMP:-${S_ADMIN:-operations@rainpole.io}}
+
+      # Ensure no spaces in email (simple sanitization)
+      S_ADMIN=$(echo "$S_ADMIN" | tr -d ' ')
+
       echo -e "\n${YELLOW}--- Upload Instructions ---${NC}"
       echo "1. Open a terminal on your laptop."
-      echo -e "2. Upload your files to: ${CYAN}$CERT_DIR/${NC}"
+      # Use printf to handle colors safely
+      printf "2. Upload your files to: ${CYAN}%s/${NC}\n" "$CERT_DIR"
       echo
-      echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' and rename them."
+      echo "I will automatically detect 'privkey.pem' and 'fullchain.pem' as you upload them and rename accordingly."
       echo "Waiting for files..."
 
       while true; do
