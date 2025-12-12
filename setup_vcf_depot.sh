@@ -347,17 +347,26 @@ EOF
 
   echo -e "${GREEN}Configuring Apache...${NC}"
 
+  # 1. Sanitize Variables (Prevent spaces from crashing Apache)
+  S_ADMIN=$(echo "$S_ADMIN" | tr -d ' ')
+  AUTH_USER=$(echo "$AUTH_USER" | tr -d ' ')
+
+  # 2. Enable Modules (Safe to run multiple times)
   sed -i 's|#LoadModule ssl_module|LoadModule ssl_module|' "$HTTPD_CONF"
   sed -i 's|#LoadModule socache_shmcb_module|LoadModule socache_shmcb_module|' "$HTTPD_CONF"
   sed -i 's|#Include conf/extra/httpd-ssl.conf|Include conf/extra/httpd-ssl.conf|' "$HTTPD_CONF"
 
+  # 3. Configure DocumentRoot
   sed -i 's|DocumentRoot "/etc/httpd/html"|DocumentRoot "/var/www/html"|' "$SSL_CONF"
-  sed -i "s|ServerAdmin you@example.com|ServerAdmin $S_ADMIN|" "$SSL_CONF"
-  sed -i "s|ServerName www.example.com:443|ServerName $DEPOT_FQDN:443|" "$SSL_CONF"
-
   sed -i 's|DocumentRoot "/etc/httpd/html"|DocumentRoot "/var/www/html"|' "$HTTPD_CONF"
   sed -i 's|<Directory "/etc/httpd/html">|<Directory "/var/www/html">|' "$HTTPD_CONF"
 
+  # 4. FORCE UPDATE ServerAdmin/Name 
+  # Using regex ^... ensures we overwrite the line regardless of its current value
+  sed -i "s|^ServerAdmin .*|ServerAdmin $S_ADMIN|" "$SSL_CONF"
+  sed -i "s|^ServerName .*|ServerName $DEPOT_FQDN:443|" "$SSL_CONF"
+
+  # 5. Fix permissions
   if ! sed -n '/<Directory "\/var\/www\/html">/,/<\/Directory>/p' "$HTTPD_CONF" | grep -q 'Require all granted'; then
     sed -i '/<Directory "\/var\/www\/html">/,/<\/Directory>/{
 s/Require all denied/Require all granted/;
@@ -367,6 +376,12 @@ s/Require all denied/Require all granted/;
     fi
   fi
 
+  # 6. RESET VCF BLOCKS (Purge & Append)
+  # Deletes any existing VCF config (from the first PROD directory tag down to the end),
+  # but preserves the closing </VirtualHost> tag.
+  sed -i '/<Directory \/var\/www\/html\/PROD\/COMP>/,${/<\/VirtualHost>/!d}' "$SSL_CONF"
+
+  # Append the fresh block
   cat << 'EOF' > /tmp/vcf_blocks.conf
 <Directory /var/www/html/PROD/COMP>
     AuthType Basic
