@@ -315,8 +315,8 @@ EOF
       exit 1
   fi
   
-  chmod 0400 /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
-  chown root:root /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
+  chmod 0640 /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
+  chown root:apache /etc/httpd/conf/server.key /etc/httpd/conf/server.crt
 
   # 2. Sanitize Variables
   S_ADMIN=$(echo "$S_ADMIN" | tr -d ' ')
