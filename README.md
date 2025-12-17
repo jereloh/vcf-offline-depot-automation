@@ -85,8 +85,8 @@ Once the server is configured, you must populate it with binaries. Choose **one*
 
 If you have internet access and a download token, the tool handles downloading and folder structure automatically.
 
-1. **Download the Offline Depot Tool:** Available via the Broadcom Portal under `[My Dashboard > Quick Links]`.
-2. **Run the Tool:** Provide your download token. The tool will download the required bundles and populate the depot automatically.
+1. **Download the Offline Depot Tool:** Available via the Broadcom Portal My Downloads
+2. **Run the Tool:** Provide your download token`[My Dashboard > Quick Links]`. The tool will download the required bundles and populate the depot automatically.
 
 ### Method B: Manual Download (Air-Gapped/No Token)
 
@@ -100,13 +100,13 @@ If you cannot use the tool, you must manually construct the depot structure.
 
 2. **Download Software Binaries:**
 * Manually download the specific `.ova` and `.iso` files required for your VCF version one by one.
-* **Crucial:** You must rename and place these files into the specific folder structure created by the metadata unzip in step 1.
+* **Crucial:** You must place these files into the folder created by the metadata unzip in step 1.
 
 
 
 > [!TIP]
 > **For VCF 9.0 / VMUG / File Placement Guide:**
-> The manual folder structure is strict. If you are unsure exactly which file names correspond to which folder, or are deploying VCF 9.0 using VMUG/VCP entitlements, refer to William Lam's guide for the exact mapping:
+> The manual folder structure is strict. Refer to William Lam's guide for the exact mapping for which file names correspond to which folder recreate folders where necessary:
 > * [How to deploy VVF/VCF 9.0 using VMUG Advantage / VCP Certification entitlement](https://williamlam.com/2025/07/how-to-deploy-vvf-vcf-9-0-using-vmug-advantage-vcp-vcf-certification-entitlement.html)
 > 
 > 
